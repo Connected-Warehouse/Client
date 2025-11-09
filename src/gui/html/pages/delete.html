@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <div data-include="../partial/common_head.html"></div>
+</head>
+<body>
+
+<!-- Header -->
+<div data-include="../partial/header.html"></div>
+
+<div class="container">
+    <h2 data-translate="delete_title">Supprimer un package</h2>
+
+    <div class="form-row">
+            <label for="packageCode">Code du package</label>
+            <input type="text" id="packageCode" placeholder="Code du package">
+    </div>
+
+    <button class="action" onclick="deleteItem()" data-translate="delete_button">Supprimer</button>
+    <button class="back action" onclick="goBack()" data-translate="back_button">Retour au menu</button>
+
+    <div class="error" id="error"></div>
+    <div class="success" id="success"></div>
+</div>
+
+<!-- Footer -->
+<div data-include="../partial/footer.html"></div>
+
+<!-- Scripts -->
+<script src="../script/basic_include.js" defer></script>
+<script src="../script/translation.js" defer></script>
+<script src="../script/settings.js" defer></script>
+<script src="../script/MenuCall.js" defer></script>
+<script>
+async function deleteItem() {
+    const code = document.getElementById('packageCode').value.trim();
+    const errorDiv = document.getElementById('error');
+    const successDiv = document.getElementById('success');
+
+    if (!code) {
+        errorDiv.innerText = getTranslation("delete_error");
+        successDiv.innerText = "";
+        return;
+    }
+
+    errorDiv.innerText = "";
+    successDiv.innerText = "";
+
+    try {
+        const result = await window.pywebview.api.remove_package({ code }); // ✅ nom correct
+        console.log("✅ Réponse Python :", result);
+        successDiv.innerText = result || getTranslation("delete_success").replace("{code}", code);
+    } catch (err) {
+        console.error("❌ Erreur API :", err);
+        errorDiv.innerText = "Erreur de communication avec Python.";
+    }
+}
+</script>
+
+</body>
+</html>

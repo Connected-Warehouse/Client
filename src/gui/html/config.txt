@@ -1,0 +1,4 @@
+ip=127.0.1
+machine=Mama
+lang=en
+port=8888

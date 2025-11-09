@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <div data-include="../partial/common_head.html"></div>
+</head>
+<body>
+
+<!-- Header -->
+<div data-include="../partial/header.html"></div>
+
+<div class="container">
+    <h2 data-translate="modify_title">Modifier un package</h2>
+
+    <!-- Formulaire Modification -->
+    <form id="form-modify" class="modify-form" onsubmit="event.preventDefault(); modifyPackage();">
+
+        <div class="form-row">
+            <label for="packageCode">Code du package</label>
+            <input type="text" id="packageCode" placeholder="Code du package">
+        </div>
+
+        <div class="form-row">
+            <label for="packageWeigth">Poids item</label>
+            <input type="number" id="packageWeigth" placeholder="0.1kg">
+        </div>
+
+        <div class="form-row">
+            <label for="packageZone">Zone</label>
+            <input type="text" id="packageZone" placeholder="Zone">
+        </div>
+
+        <div class="form-row">
+            <label for="destinationId">Provenance</label>
+            <input type="number" id="destinationId" placeholder="source (ID)">
+        </div>
+
+        <div class="form-row">
+            <label for="sourceId">Destination</label>
+            <input type="number" id="sourceId" placeholder="destination (ID)">
+        </div>
+
+        <label><input type="checkbox" id="packageRefrigerated"> Refrigere</label>
+        <label><input type="checkbox" id="packageFragile"> Fragile</label>
+
+        <button type="submit" class="action" data-translate="modify_button">Modifier Package</button>
+    </form>
+
+    <button type="button" class="back action" onclick="goBack()" data-translate="back_button">Retour au menu</button>
+
+    <div class="error" id="error"></div>
+    <div class="success" id="success"></div>
+</div>
+
+
+
+
+
+<!-- Footer -->
+<div data-include="../partial/footer.html"></div>
+
+<!-- Scripts -->
+<script src="../script/basic_include.js" defer></script>
+<script src="../script/translation.js" defer></script>
+<script src="../script/settings.js" defer></script>
+<script src="../script/MenuCall.js" defer></script>
+<script>
+async function modifyPackage() {
+    const errorDiv = document.getElementById('error');
+    const successDiv = document.getElementById('success');
+
+    // Récupération des champs
+    const packageCode = document.getElementById('packageCode').value;
+    const packageWeigth = document.getElementById('packageWeigth').value;
+    const packageZone = document.getElementById('packageZone').value;
+    const destinationId = document.getElementById('destinationId').value;
+    const sourceId = document.getElementById('sourceId').value;
+    const packageRefrigerated = document.getElementById('packageRefrigerated').checked;
+    const packageFragile = document.getElementById('packageFragile').checked;
+
+    // Vérification minimale : au moins un champ rempli
+    if (
+        !packageCode && !packageWeigth && !packageZone &&
+        !destinationId && !sourceId &&
+        !packageRefrigerated && !packageFragile
+    ) {
+        errorDiv.innerText = getTranslation("modify_error");
+        return;
+    }
+
+    // Construction de l'objet à envoyer
+    const data = {
+        code: packageCode || null,
+        weigth: packageWeigth || null,
+        zone: packageZone || null,
+        provenance: destinationId || null,
+        destination: sourceId || null,
+        refrigerated: packageRefrigerated|| false,
+        fragile: packageFragile|| false
+    };
+
+    errorDiv.innerText = "";
+    successDiv.innerText = getTranslation("modify_success");
+
+    // ✅ Appel API Python
+    try {
+        const response = await window.pywebview.api.modify_package(data);
+        console.log("✅ Reponse Python :", response);
+        successDiv.innerText = response; // ou garde la traduction si tu preferes
+    } catch (err) {
+        console.error("❌ Erreur API :", err);
+        errorDiv.innerText = "Erreur de communication avec le backend.";
+    }
+}
+</script>
+
+</body>
+</html>

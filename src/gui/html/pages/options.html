@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <div data-include="../partial/common_head.html"></div>
+</head>
+<body>
+
+<!-- Header -->
+<div data-include="../partial/header.html"></div>
+
+<!-- Contenu principal -->
+<div class="container">
+    <h2 data-translate="settings_title">Parametres</h2>
+
+    <label for="serverIp" data-translate="server_ip_label">IP du serveur</label>
+    <input type="text" id="serverIp" data-translate-placeholder="server_ip_placeholder">
+
+    <label for="machineName" data-translate="machine_name_label">Nom de la machine</label>
+    <input type="text" id="machineName" data-translate-placeholder="machine_name_placeholder">
+
+    <button class="action" id="saveBtn" onclick="saveSettings()" data-translate="save_button">Enregistrer</button>
+
+    <label for="language" data-translate="language_label">Langue</label>
+    <select id="language">
+        <option value="fr" data-translate="lang_fr">Francais</option>
+        <option value="en" data-translate="lang_en">English</option>
+    </select>
+
+    <button class="action back" onclick="goBack()" data-translate="back_button">Retour au menu</button>
+
+    <div class="success" id="success"></div>
+    <div class="error" id="error"></div>
+</div>
+
+<!-- Footer -->
+<div data-include="../partial/footer.html"></div>
+
+<!-- Scripts -->
+<script src="../script/basic_include.js" defer></script>
+<script src="../script/translation.js" defer></script>
+<script src="../script/settings.js" defer></script>
+<script src="../script/MenuCall.js" defer></script>
+<script>
+async function saveSettings() {
+    const ip = document.getElementById('serverIp').value.trim();
+    const name = document.getElementById('machineName').value.trim();
+    const lang = document.getElementById('language').value;
+    const successDiv = document.getElementById('success');
+    const errorDiv = document.getElementById('error');
+
+    if (!ip || !name) {
+        errorDiv.innerText = "Veuillez remplir tous les champs.";
+        successDiv.innerText = "";
+        return;
+    }
+
+    errorDiv.innerText = "";
+
+    try {
+        // ✅ Appel Python : méthode save_settings() à ajouter dans ton API
+        const response = await window.pywebview.api.save_settings(ip, name, lang);
+        console.log("✅ Réponse Python :", response);
+        successDiv.innerText = response;
+    } catch (err) {
+        console.error("❌ Erreur API :", err);
+        errorDiv.innerText = "Erreur lors de la sauvegarde.";
+    }
+}
+
+function goBack() {
+    window.location.href = "/pages/index.html";
+}
+</script>
+
+</body>
+</html>

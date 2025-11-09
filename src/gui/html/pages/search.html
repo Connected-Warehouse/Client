@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <div data-include="../partial/common_head.html"></div>
+</head>
+<body>
+
+<!-- Header -->
+<div data-include="../partial/header.html"></div>
+
+<div class="container">
+    <h2 data-translate="search_title">Rechercher un element</h2>
+
+    <div class="form-row">
+            <label for="packageCode">Code du package</label>
+            <input type="text" id="packageCode" placeholder="Code du package">
+    </div>
+
+    <button class="action" onclick="searchItem()" data-translate="search_button">Rechercher</button>
+    <button class="action back" onclick="goBack()" data-translate="back_button">Retour au menu</button>
+
+    <div class="error" id="error"></div>
+    <div class="success" id="success"></div>
+    <ul id="results"></ul>
+</div>
+
+<!-- Footer -->
+<div data-include="../partial/footer.html"></div>
+
+<!-- Scripts -->
+<script src="../script/basic_include.js" defer></script>
+<script src="../script/translation.js" defer></script>
+<script src="../script/settings.js" defer></script>
+<script src="../script/MenuCall.js" defer></script>
+<script>
+async function searchItem() {
+    const code = document.getElementById('packageCode').value.trim();
+    const errorDiv = document.getElementById('error');
+    const successDiv = document.getElementById('success');
+    const resultsList = document.getElementById('results');
+
+    if (!code) {
+        errorDiv.innerText = getTranslation("search_error");
+        successDiv.innerText = "";
+        resultsList.innerHTML = "";
+        return;
+    }
+
+    errorDiv.innerText = "";
+    successDiv.innerText = getTranslation("search_success").replace("{query}", code);
+    resultsList.innerHTML = "<li>Chargement...</li>";
+
+    try {
+        const results = await window.pywebview.api.search_package({ code }); // ✅ nom correct
+        console.log("✅ Résultats reçus :", results);
+
+        if (Array.isArray(results) && results.length > 0) {
+            resultsList.innerHTML = results.map(r => `<li>${r}</li>`).join("");
+        } else if (typeof results === 'string') {
+            resultsList.innerHTML = `<li>${results}</li>`;
+        } else {
+            resultsList.innerHTML = "<li>Aucun résultat trouvé.</li>";
+        }
+    } catch (err) {
+        console.error("❌ Erreur API :", err);
+        errorDiv.innerText = "Erreur lors de la recherche.";
+        resultsList.innerHTML = "";
+    }
+}
+</script>
+
+</body>
+</html>
