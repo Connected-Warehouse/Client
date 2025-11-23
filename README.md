@@ -110,3 +110,4 @@ Vous pouvez modifier ces constantes directement dans le script `main.py` pour l�
 * Les scénarios utilisent des pauses (`input()`) pour permettre de suivre les étapes pas à pas.
 * Le client peut être adapté pour des scripts automatisés en supprimant les `input()` si nécessaire.
 * Ce client est conçu pour des tests et des démonstrations et suppose que le serveur respecte le protocole attendu.
+* On part ici du principe que le serveur se trouve en "127.0.0.1" au port 8888
