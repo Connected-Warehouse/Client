@@ -4,67 +4,115 @@ from typing import Optional
 from client.listener import MyListener
 
 class SocketClient:
-    def __init__(self, host: str, port: int, listener : MyListener):
+    def __init__(self, host: str, port: int, listener: MyListener):
         self.host = host
         self.port = port
         self.listener = listener
         self.sock: Optional[socket.socket] = None
-        self._running = False
-        self._recv_thread: Optional[threading.Thread] = None
 
+        self.running = False
+        self.recv_thread: Optional[threading.Thread] = None
+        self.connected = False
+        self.lock = threading.Lock()
+
+    # =======================================================
+    # CONNEXION
+    # =======================================================
     def connect(self):
-        """Se connecter au serveur et démarrer le thread de réception"""
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((self.host, self.port))
-            self._running = True
+
+            with self.lock:
+                self.connected = True
+                self.running = True
+
             if self.listener:
                 self.listener.on_connected()
 
-            # démarrer le thread d'écoute des messages
-            self._recv_thread = threading.Thread(target=self._recv_loop, daemon=True)
-            self._recv_thread.start()
+            self.recv_thread = threading.Thread(
+                target=self._recv_loop, daemon=True
+            )
+            self.recv_thread.start()
+
         except Exception as e:
             if self.listener:
                 self.listener.on_error(e)
 
+    # =======================================================
+    # ENVOI DE MESSAGE
+    # =======================================================
     def send_message(self, message: str):
-        """Envoyer un message au serveur"""
-        if not self.sock:
+        if not self.connected or not self.sock:
             raise RuntimeError("Pas connecté au serveur")
+
         try:
-            self.sock.sendall((message + "\n").encode('utf-8'))
+            self.sock.sendall((message + "\n").encode("utf-8"))
         except Exception as e:
             if self.listener:
                 self.listener.on_error(e)
 
+    # =======================================================
+    # BOUCLE DE RECEPTION
+    # =======================================================
     def _recv_loop(self):
-        """Boucle de réception des messages du serveur"""
         try:
-            while self._running and self.sock:
-                data = self.sock.recv(1024)
-                if not data:
-                    break  # serveur a fermé la connexion
-                message = data.decode('utf-8').strip()
-                if self.listener:
-                    self.listener.on_received(message)
+            if not self.sock:
+                return
+
+            # Utilisation de makefile pour lecture ligne par ligne
+            with self.sock.makefile('r', encoding='utf-8') as f:
+                while True:
+                    with self.lock:
+                        if not self.running or not self.connected:
+                            break
+
+                    line = f.readline()
+                    if not line:
+                        break  # serveur fermé
+
+                    msg = line.strip()
+                    if self.listener:
+                        self.listener.on_received(msg)
+
         except Exception as e:
             if self.listener:
                 self.listener.on_error(e)
-        finally:
-            self._running = False
-            if self.listener:
-                self.listener.on_disconnected()
-            self.disconnect()  # fermeture propre
 
-    def disconnect(self):
-        """Déconnecter proprement"""
-        self._running = False
+        finally:
+            # déconnexion propre
+            self._internal_disconnect()
+
+    # =======================================================
+    # DECONNEXION INTERNE (appelée une seule fois)
+    # =======================================================
+    def _internal_disconnect(self):
+        """ Assure une déconnexion unique et sûre. """
+        with self.lock:
+            if not self.connected:
+                return  # déjà déconnecté
+
+            self.connected = False
+            self.running = False
+
+        # fermer le socket
         if self.sock:
             try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+            try:
                 self.sock.close()
-            except Exception:
+            except:
                 pass
             self.sock = None
-            if self.listener:
-                self.listener.on_disconnected()
+
+        if self.listener:
+            self.listener.on_disconnected()
+
+    # =======================================================
+    # DECONNEXION DEMANDÉE PAR L'UTILISATEUR
+    # =======================================================
+    def disconnect(self):
+        """Appelé par le code utilisateur."""
+        self._internal_disconnect()
