@@ -23,7 +23,7 @@ class ScenarioListener(MyListener):
         print(f"[ERROR] {error}")
 
 
-def send_and_wait(client: SocketClient, listener: ScenarioListener, message: str, timeout=5.0):
+def send_and_wait(client: SocketClient, listener: ScenarioListener, message: str, timeout=1.0):
     """
     Envoie un message au serveur.
     Comme le listener affiche les messages directement,
