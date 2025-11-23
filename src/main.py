@@ -90,6 +90,7 @@ def main():
     host = "127.0.0.1"
     port = 8888
 
+    print("Premier scénario : Ajout d'une commande")
     scenario_command(host,port,"ADD",code="PKG111",
                      fragile=False,
                      refrigerated=False,
@@ -100,7 +101,10 @@ def main():
                      estimated_delivery=f"{date(2025, 10, 23)}",
                      )
 
+    print("Deuxième scénario : Lecture d'une commande")
     scenario_command(host, port, "READ", code="PKG111")
+
+    print("Troisième scénario : Modification d'une commande")
     scenario_command(host, port, "MODIFY", code="PKG111",
                      fragile=True,
                      refrigerated=True,
@@ -112,7 +116,11 @@ def main():
                      estimated_delivery=f"{date(2025, 12, 5)}",
                      exit_time="now"
                      )
+
+    print("Quatrième scénario : Relecture d'une commande modifié")
     scenario_command(host, port, "READ", code="PKG111")
+
+    print("Cinquième scénario : Suppression d'une commande")
     scenario_command(host, port, "DELETE", code="PKG111")
 
 if __name__ == "__main__":
