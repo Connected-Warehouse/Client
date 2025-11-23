@@ -231,6 +231,35 @@ def scenario_5(host=HOST, port=PORT):
 
     client.disconnect()
 
+def scenario_6(host=HOST, port=PORT):
+    """
+    Scénario 6 : Envoi d'une requête énorme pour tester le serveur
+    """
+    listener = ScenarioListener()
+    client = SocketClient(host, port, listener)
+    client.connect()
+
+    package_code = f"{PACKAGE_CODE}_LARGE"
+    total_steps = 1
+    step = 1
+
+    print(f"[SCÉNARIO 6 - Étape {step}/{total_steps}] Envoi d'un colis avec données volumineuses...")
+
+    client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
+
+    # Création d'une très grande chaîne pour tester le serveur
+    huge_text = "X" * 300  # 300 caractères
+
+    args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
+               f"-source {huge_text}@email.com -destination {huge_text}@gmail.com " \
+               f"-weight 10 -status in_storage -estimated_delivery {date(2025, 12, 31)} " \
+               f"-notes {huge_text}"
+
+    client = safe_send(client, listener, args_add, host, port)
+
+    input(f"[SCÉNARIO 6 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+
+    client.disconnect()
 
 
 
@@ -243,7 +272,8 @@ def main():
         "2": scenario_2,
         "3": scenario_3,
         "4": scenario_4,
-        "5": scenario_5
+        "5": scenario_5,
+        "6":scenario_6
     }
 
     while True:
@@ -253,9 +283,10 @@ def main():
         print("3: Lire un colis inexistant")
         print("4: Tentative d'ajout sans infos obligatoires")
         print("5: Ajout, puis suppression d'un colis sans source ni destination")
+        print("6: Envoi d'une trop grosse requête")
         print("q: Quitter")
 
-        choice = input("Sélectionnez un scénario (1-5) ou q pour quitter: ").strip()
+        choice = input("Sélectionnez un scénario (1-6) ou q pour quitter: ").strip()
         if choice.lower() == "q":
             print("Au revoir !")
             break
