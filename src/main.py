@@ -1,4 +1,5 @@
 import time
+import ipaddress
 from datetime import date
 
 from client.SocketClient import SocketClient
@@ -9,10 +10,12 @@ from client.listener.MyListener import MyListener
 # ======================
 class ScenarioListener(MyListener):
     def on_connected(self):
-        print("[INFO] Connected to server.")
+        print("[INFO] Connexion au serveur réussie.")
+        CONNECTED=1
 
     def on_disconnected(self):
-        print("[INFO] Disconnected from server.")
+        print("[INFO] Déconnexion du serveur.")
+        CONNECTED=0
 
     def on_received(self, message: str):
         print("[RECEIVED]", message.strip())
@@ -52,11 +55,35 @@ TERMINAL_NAME = "A001"
 PACKAGE_CODE = "PKG777"
 HOST = "127.0.0.1"
 PORT = 8888
+CONNECTED = 0
 
 
 # ======================
 # SCÉNARIOS
 # ======================
+
+def scenario_0(host=HOST, port=PORT):
+    port = int(port)
+    listener = ScenarioListener()
+    client = SocketClient(host, port, listener)
+    client.connect()
+    #Vérification et indication de connexion effective
+    if(not client.connected):
+        print(f"[ERROR] Échec de connexion")
+        return
+    action=input("Choisissez une action à faire parmis ADD, READ, MODIFY, DELETE").strip()
+    terminal_name=input("Entrez le nom de votre terminal").strip()
+    if(action=="READ"):
+        read(client,listener,host,port,terminal_name)
+    elif(action=="ADD"):
+        add()
+    elif(action=="MODIFY"):
+        modify()
+    elif(action=="DELETE"):
+        delete()
+    else:
+        print(f"Erreur: veuillez choisir une action parmis celles proposés.")
+    client.disconnect
 
 def scenario_1(host=HOST, port=PORT):
     """
@@ -261,8 +288,29 @@ def scenario_6(host=HOST, port=PORT):
 
     client.disconnect()
 
+# ======================
+# ACTION FUNCTIONS
+# ======================
 
+def read(client,listener,host,port,terminal_name):
+    print(f"Lecture par le terminal {terminal_name}")
+    client = safe_send(client, listener, f"READ {terminal_name}", host, port)
+    #vérification de la réponse allowed, erreur et retour sinon.
+    package_code=input("Veuillez entrer le code du package a lire")
+    client = safe_send(client, listener, f"-code {package_code}", host, port)
+    input(f"Lecture Terminé. Appuyez sur Entrée pour continuer...")
+    return
+def add():
+    return
+def modify():
+    return
+def delete(client,listener,host,port,terminal_name):
+    print(f"Suppression par le terminal {terminal_name}")
+    client = safe_send(client, listener, f"DELETE {terminal_name}", host, port)
 
+    package_code=input("Veuillez entrer le code du package a lire")
+    client = safe_send(client, listener, f"-code {package_code}", host, port)
+    return
 # ======================
 # MAIN CLI
 # ======================
@@ -277,7 +325,9 @@ def main():
     }
 
     while True:
-        print("\n=== MENU SCÉNARIOS ===")
+        print("\n=== UTILISATION MANUELLE ===")
+        print("0: Scénario manuel (l'utilisateur entre ses valeurs manuellement)")
+        print("\n=== MENU SCÉNARIOS AUTOMATISÉS ===")
         print("1: Ajout puis suppression d'un colis")
         print("2: Ajout, modification, lecture, suppression")
         print("3: Lire un colis inexistant")
@@ -286,10 +336,24 @@ def main():
         print("6: Envoi d'une trop grosse requête")
         print("q: Quitter")
 
-        choice = input("Sélectionnez un scénario (1-6) ou q pour quitter: ").strip()
+        choice = input("Sélectionnez un scénario (0-6) ou q pour quitter: ").strip()
         if choice.lower() == "q":
             print("Au revoir !")
             break
+        elif choice == "0":
+            chosen_port=input("Entrez le port par lequel se connecter. Entrez d pour la valeure par défaut").strip()
+            if(chosen_port=="d"):
+                chosen_port=str(PORT)
+            if(not chosen_port.isdigit):
+                print("[ERROR] Choix de port invalide, réessayez.")
+                return
+            chosen_host=input("Entrez l'adresse à laquelle se connecter").strip()
+            try:
+                ipaddress.ip_address(chosen_host)
+            except ValueError:
+                print("[ERROR] Choix d'adresse invalide, réessayez.")
+                return
+            scenario_0(chosen_host, chosen_port)
         elif choice in scenarios:
             scenarios[choice](HOST, PORT)
         else:
