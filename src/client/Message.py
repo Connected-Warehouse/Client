@@ -33,7 +33,7 @@ class Message:
         # Définir les règles de validation
         rules = {
             "ADD": {
-                "required": ["code", "weight", "estimated_delivery"],
+                "required": ["code", "weight", "spacecode"],
                 "format": {
                     "code": r"^PKG[A-Z0-9]+$",  # Format du code colis (PKG+lettres/chiffres)
                     "weight": r"^\d+(\.\d+)?$",  # Poids (entier/décimal)

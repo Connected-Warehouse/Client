@@ -129,6 +129,7 @@ def scenario_0(host=HOST, port=PORT):
             print(f"Erreur: veuillez choisir une action parmis celles proposés.")
     except ServerDisconnected:
         print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
         return
     client.disconnect
 
@@ -429,7 +430,7 @@ def delete(client,listener,host,port,terminal_name):
         if(not PERMITTED.is_set()):
             print(f"Accès non autorisé")
             return
-        package_code=input("Veuillez entrer le code du package a lire")
+        package_code=input("Veuillez entrer le code du package a supprimer")
         data = {"code": package_code}
         is_valid, msg = Message.validate_data(data, "DELETE")
         if not is_valid:
