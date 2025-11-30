@@ -1,9 +1,11 @@
+import threading
 import time
 import ipaddress
 from datetime import date
 
 from client.SocketClient import SocketClient
 from client.listener.MyListener import MyListener
+from client.Message import Message
 
 # ======================
 # LISTENER POUR LES SCÉNARIOS
@@ -11,23 +13,28 @@ from client.listener.MyListener import MyListener
 class ScenarioListener(MyListener):
     def on_connected(self):
         print("[INFO] Connexion au serveur réussie.")
-        CONNECTED=1
-
     def on_disconnected(self):
-        print("[INFO] Déconnexion du serveur.")
-        CONNECTED=0
+        print("[INFO] Déconnexion du serveur. Vous reviendrez au menu de départ")
 
     def on_received(self, message: str):
+        treat_message(message.strip())
         print("[RECEIVED]", message.strip())
+        
 
     def on_error(self, error: Exception):
         print(f"[ERROR] {error}")
 
+# ======================
+# EXCEPTIONS
+# ======================
+class ServerDisconnected(Exception):
+    """Quand la connection au serveur est perdu"""
+    pass
 
 # ======================
 # FONCTION UTILE D'ENVOI DE MESSAGE
 # ======================
-def safe_send(client: SocketClient, listener: ScenarioListener, message: str, host="127.0.0.1", port=8888, timeout=1.0):
+def safe_send(client: SocketClient, listener: ScenarioListener, message: str, host="127.0.0.1", port=8888, timeout=2.0):
     """
     Envoie un message au serveur, reconnecte si nécessaire.
     """
@@ -36,18 +43,40 @@ def safe_send(client: SocketClient, listener: ScenarioListener, message: str, ho
         client = SocketClient(host, port, listener)
         client.connect()
         if not client.connected:
-            print("[ERROR] Reconnexion échouée. On skip l'étape :", message)
-            return client
+            print("[ERROR] Reconnexion échouée. Retour au départ")
+            raise ServerDisconnected
 
     try:
         print(f"[SENDING] {message}")
+        RESPONDED.clear()
         client.send_message(message)
-        time.sleep(timeout)
+        time.sleep(timeout)#le serveur a 2 seconde pour répondre
+        if(not (RESPONDED.is_set())):
+            print("[ERROR] Serveur a pris plus de deux seconde à répondre. Fin de la connexion")
+            raise ServerDisconnected
     except Exception as e:
         print(f"[ERROR] Échec envoi message : {e}")
+        raise ServerDisconnected
+    except ServerDisconnected as e:
+        print(f"[ERROR] Échec envoi message : {e}")
+        raise ServerDisconnected
     return client
 
-
+def treat_message(message):
+    """
+    Traite le message pour communiquer une autorisation de passage.
+    """
+    RESPONDED.set()
+    if(message.startswith("ALLOWED")):
+        PERMITTED.set()
+        #print("Test Réussi allowed")
+    elif(message.startswith("ERROR")):
+        return
+        #print("Test Réussi ERROR") 
+    elif(message.startswith("FINISHED")):
+        FINISHED.set()
+        return
+    return
 # ======================
 # CONSTANTES
 # ======================
@@ -56,13 +85,24 @@ PACKAGE_CODE = "PKG777"
 HOST = "127.0.0.1"
 PORT = 8888
 CONNECTED = 0
+PERMITTED = threading.Event()
+FINISHED = threading.Event()
+SHOULD_RESET=0
 
+RESPONDED = threading.Event()
 
+def resetState():
+    RESPONDED.clear()
+    PERMITTED.clear()
+    FINISHED.clear()
 # ======================
 # SCÉNARIOS
 # ======================
 
 def scenario_0(host=HOST, port=PORT):
+    """
+    Scénario 0 : Action Manuelle, le plus important des scénarios
+    """
     port = int(port)
     listener = ScenarioListener()
     client = SocketClient(host, port, listener)
@@ -71,18 +111,25 @@ def scenario_0(host=HOST, port=PORT):
     if(not client.connected):
         print(f"[ERROR] Échec de connexion")
         return
-    action=input("Choisissez une action à faire parmis ADD, READ, MODIFY, DELETE").strip()
-    terminal_name=input("Entrez le nom de votre terminal").strip()
-    if(action=="READ"):
-        read(client,listener,host,port,terminal_name)
-    elif(action=="ADD"):
-        add()
-    elif(action=="MODIFY"):
-        modify()
-    elif(action=="DELETE"):
-        delete()
-    else:
-        print(f"Erreur: veuillez choisir une action parmis celles proposés.")
+    action=input("Choisissez une action à faire parmis ADD, READ, MODIFY, DELETE : ").strip()
+    if(not client.connected):
+        print(f"[ERROR] Échec de connexion")
+        return
+    terminal_name=input("Entrez le nom de votre terminal : ").strip()
+    try:
+        if(action=="READ"):
+            read(client,listener,host,port,terminal_name)
+        elif(action=="ADD"):
+            add(client,listener,host,port,terminal_name)
+        elif(action=="MODIFY"):
+            modify(client,listener,host,port,terminal_name)
+        elif(action=="DELETE"):
+            delete(client,listener,host,port,terminal_name)
+        else:
+            print(f"Erreur: veuillez choisir une action parmis celles proposés.")
+    except ServerDisconnected:
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        return
     client.disconnect
 
 def scenario_1(host=HOST, port=PORT):
@@ -255,7 +302,6 @@ def scenario_5(host=HOST, port=PORT):
     client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
     client = safe_send(client, listener, f"-code {package_code}", host, port)
     input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Fin du scénario 5. Appuyez sur Entrée pour continuer...")
-
     client.disconnect()
 
 def scenario_6(host=HOST, port=PORT):
@@ -293,24 +339,107 @@ def scenario_6(host=HOST, port=PORT):
 # ======================
 
 def read(client,listener,host,port,terminal_name):
-    print(f"Lecture par le terminal {terminal_name}")
-    client = safe_send(client, listener, f"READ {terminal_name}", host, port)
-    #vérification de la réponse allowed, erreur et retour sinon.
-    package_code=input("Veuillez entrer le code du package a lire")
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"Lecture Terminé. Appuyez sur Entrée pour continuer...")
+    try:
+        print(f"Lecture par le terminal {terminal_name}")
+        client = safe_send(client, listener, f"READ {terminal_name}", host, port)
+        if(not PERMITTED.is_set()):
+            print(f"Accès non autorisé")
+            return
+        #vérification de la réponse allowed, erreur et retour sinon.
+        package_code=input("Veuillez entrer le code du package a lire : ")
+        data = {"code": package_code}
+        #validation des données
+        is_valid, msg = Message.validate_data(data, "READ")
+        if not is_valid:
+            print(f"Message {msg} non valide, veuillez revoir le format")
+            return
+        client = safe_send(client, listener, Message.build_param_cmd(data), host, port)
+        input(f"Lecture Terminé. Appuyez sur Entrée pour continuer...")
+    except ServerDisconnected:
+        raise ServerDisconnected
     return
-def add():
+
+def add(client, listener, host, port, terminal_name):
+    try:
+        print(f"Ajout d'un colis par le terminal {terminal_name}")
+        client = safe_send(client, listener, Message.build_action_cmd("ADD", terminal_name), host, port)
+        if(not PERMITTED.is_set()):
+            print(f"Accès non autorisé")
+            return
+        package_info = {
+            "code": input("Code colis (PKG+lettres/chiffres) : ").strip(),
+            "fragile": input("Fragile (true/false) : ").strip().lower() or "false",
+            "refrigerated": input("Réfrigéré (true/false) : ").strip().lower() or "false",
+            "spacecode": input("Zone de stockage (ex: E403) : ").strip(),
+            "source": input("Email expéditeur : ").strip(),
+            "destination": input("Email destinataire : ").strip(),
+            "weight": input("Poids (kg) : ").strip(),
+            "status": input("Statut (in_storage/picked_up) : ").strip() or "in_storage",
+            "estimated_delivery": input("Date de livraison estimée (AAAA-MM-JJ) : ").strip()
+        }
+        # Validation des données
+        is_valid, msg = Message.validate_data(package_info, "ADD")
+        if not is_valid:
+            print(f"Message {msg} non valide, veuillez revoir le format {msg}")
+            return
+
+        # Envoi des données
+        client = safe_send(client, listener, Message.build_param_cmd(package_info), host, port)
+    except ServerDisconnected:
+        raise ServerDisconnected
+    input(f"Appuyez sur Entrée pour continuer...")
     return
-def modify():
+
+def modify(client, listener, host, port, terminal_name):
+
+    print(f"Modification d'un colis par le terminal {terminal_name}")
+    try:
+        client = safe_send(client, listener, Message.build_action_cmd("MODIFY", terminal_name), host, port)
+        if(not PERMITTED.is_set()):
+            print(f"Accès non autorisé")
+            return
+        # Collecte des données
+        modify_info = {
+            "code": input("Code colis : ").strip(),
+            "weight": input("Nouveau poids (laisser vide pour ne pas modifier) : ").strip(),
+            "status": input("Nouveau statut (laisser vide pour ne pas modifier) : ").strip(),
+            "refrigerated": input("Nouvel état réfrigéré (true/false, laisser vide pour ne pas modifier) : ").strip().lower()
+        }
+
+        # Filtrage des valeurs vides
+        modify_info = {k: v for k, v in modify_info.items() if v.strip()}
+
+        # Validation des données
+        is_valid, msg = Message.validate_data(modify_info, "MODIFY")
+        if not is_valid:
+            print(f" {msg} n'est pas une donnée valide")
+            return
+
+        # Envoi des données
+        client = safe_send(client, listener, Message.build_param_cmd(modify_info), host, port)
+    except ServerDisconnected:
+        raise ServerDisconnected
+    input("\n Appuyez sur Entrée pour continuer...")
     return
+
 def delete(client,listener,host,port,terminal_name):
     print(f"Suppression par le terminal {terminal_name}")
-    client = safe_send(client, listener, f"DELETE {terminal_name}", host, port)
+    try:
+        client = safe_send(client, listener, Message.build_action_cmd("DELETE", terminal_name), host, port)
+        if(not PERMITTED.is_set()):
+            print(f"Accès non autorisé")
+            return
+        package_code=input("Veuillez entrer le code du package a lire")
+        data = {"code": package_code}
+        is_valid, msg = Message.validate_data(data, "DELETE")
+        if not is_valid:
+            print(f"Message {msg} non valide, veuillez revoir le format")
+            return
+        client = safe_send(client, listener, Message.build_param_cmd(data), host, port)
+    except ServerDisconnected:
+        raise ServerDisconnected
+    input(f"Suppression Terminé. Appuyez sur Entrée pour continuer...")
 
-    package_code=input("Veuillez entrer le code du package a lire")
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    return
 # ======================
 # MAIN CLI
 # ======================
@@ -341,13 +470,13 @@ def main():
             print("Au revoir !")
             break
         elif choice == "0":
-            chosen_port=input("Entrez le port par lequel se connecter. Entrez d pour la valeure par défaut").strip()
+            chosen_port=input("Entrez le port par lequel se connecter. Entrez d pour la valeure par défaut : ").strip()
             if(chosen_port=="d"):
                 chosen_port=str(PORT)
             if(not chosen_port.isdigit):
                 print("[ERROR] Choix de port invalide, réessayez.")
                 return
-            chosen_host=input("Entrez l'adresse à laquelle se connecter").strip()
+            chosen_host=input("Entrez l'adresse à laquelle se connecter : ").strip()
             try:
                 ipaddress.ip_address(chosen_host)
             except ValueError:
@@ -358,7 +487,7 @@ def main():
             scenarios[choice](HOST, PORT)
         else:
             print("[ERROR] Choix invalide, réessayez.")
-
+        resetState()
 
 if __name__ == "__main__":
     main()
