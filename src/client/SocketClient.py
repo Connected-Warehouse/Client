@@ -34,6 +34,8 @@ class SocketClient:
                 target=self._recv_loop, daemon=True
             )
             self.recv_thread.start()
+        except socket.gaierror as e:
+            print("[DNS ERROR] Failed to resolve host:", self.host)
 
         except Exception as e:
             if self.listener:
@@ -61,7 +63,7 @@ class SocketClient:
                 return
 
             # Utilisation de makefile pour lecture ligne par ligne
-            with self.sock.makefile('r', encoding='utf-8') as f:
+            with self.sock.makefile('r', encoding='latin-1') as f:
                 while True:
                     with self.lock:
                         if not self.running or not self.connected:

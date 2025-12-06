@@ -14,7 +14,7 @@ class ScenarioListener(MyListener):
     def on_connected(self):
         print("[INFO] Connexion au serveur réussie.")
     def on_disconnected(self):
-        print("[INFO] Déconnexion du serveur. Vous reviendrez au menu de départ")
+        print("[INFO] Déconnexion du serveur. Si vous êtes dans un menu de saisie, vous reviendrez au menu de base.")
 
     def on_received(self, message: str):
         treat_message(message.strip())
@@ -146,28 +146,32 @@ def scenario_1(host=HOST, port=PORT):
 
     # --- Étape 1 : ADD ---
     step = 1
-    print(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Ajout du colis...")
-    client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
-    args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
-               f"-source alex.durand@email.com -destination gogo@gmail.com " \
-               f"-weight 10 -status in_storage -estimated_delivery {date(2025, 11, 30)}"
-    client = safe_send(client, listener, args_add, host, port)
-    input(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+    try:
+        print(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Ajout du colis...")
+        client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
+        args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
+                f"-source alex.durand@email.com -destination gogo@gmail.com " \
+                f"-weight 10 -status in_storage -estimated_delivery {date(2025, 11, 30)}"
+        client = safe_send(client, listener, args_add, host, port)
+        input(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 2 : READ ---
-    step += 1
-    print(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Lecture du colis ajouté...")
-    client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+        # --- Étape 2 : READ ---
+        step += 1
+        print(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Lecture du colis ajouté...")
+        client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 3 : DELETE ---
-    step += 1
-    print(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Suppression du colis...")
-    client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Terminé. Fin du scénario 1. Appuyez sur Entrée pour continuer...")
-
+        # --- Étape 3 : DELETE ---
+        step += 1
+        print(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Suppression du colis...")
+        client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 1 - Étape {step}/{total_steps}] Terminé. Fin du scénario 1. Appuyez sur Entrée pour continuer...")
+    except(ServerDisconnected):
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
+        return
     client.disconnect()
 
 
@@ -184,50 +188,54 @@ def scenario_2(host=HOST, port=PORT):
     step = 1
 
     # --- Étape 1 : ADD ---
-    print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Ajout du colis...")
-    client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
-    args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
-               f"-source alex.durand@email.com -destination gogo@gmail.com " \
-               f"-weight 10 -status in_storage -estimated_delivery {date(2025, 11, 30)}"
-    client = safe_send(client, listener, args_add, host, port)
-    input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+    try:
+        print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Ajout du colis...")
+        client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
+        args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
+                f"-source alex.durand@email.com -destination gogo@gmail.com " \
+                f"-weight 10 -status in_storage -estimated_delivery {date(2025, 11, 30)}"
+        client = safe_send(client, listener, args_add, host, port)
+        input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 2 : READ après ADD ---
-    step += 1
-    print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Lecture après ajout...")
-    client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+        # --- Étape 2 : READ après ADD ---
+        step += 1
+        print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Lecture après ajout...")
+        client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 3 : MODIFY ---
-    step += 1
-    print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Modification du colis...")
-    client = safe_send(client, listener, f"MODIFY {TERMINAL_NAME}", host, port)
-    args_modify = f"-code {package_code} -weight 15 -status picked_up"
-    client = safe_send(client, listener, args_modify, host, port)
-    input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+        # --- Étape 3 : MODIFY ---
+        step += 1
+        print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Modification du colis...")
+        client = safe_send(client, listener, f"MODIFY {TERMINAL_NAME}", host, port)
+        args_modify = f"-code {package_code} -fragile true -refrigerated true -spacecode E403 -weight 15 -status picked_up -estimated_delivery 2025-12-10 -exit_time now"
+        client = safe_send(client, listener, args_modify, host, port)
+        input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 4 : READ après MODIFY ---
-    step += 1
-    print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Lecture après modification...")
-    client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+        # --- Étape 4 : READ après MODIFY ---
+        step += 1
+        print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Lecture après modification...")
+        client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 5 : DELETE ---
-    step += 1
-    print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Suppression du colis...")
-    client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+        # --- Étape 5 : DELETE ---
+        step += 1
+        print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Suppression du colis...")
+        client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 6 : READ après DELETE ---
-    step += 1
-    print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Lecture après suppression...")
-    client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Fin du scénario 2. Appuyez sur Entrée pour continuer...")
-
+        # --- Étape 6 : READ après DELETE ---
+        step += 1
+        print(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Lecture après suppression...")
+        client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 2 - Étape {step}/{total_steps}] Terminé. Fin du scénario 2. Appuyez sur Entrée pour continuer...")
+    except(ServerDisconnected):
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
+        return
     client.disconnect()
 
 
@@ -242,12 +250,15 @@ def scenario_3(host=HOST, port=PORT):
     package_code = "PKG_INEXISTANT"
     total_steps = 1
     step = 1
-
-    print(f"[SCÉNARIO 3 - Étape {step}/{total_steps}] Lecture d'un colis inexistant...")
-    client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 3 - Étape {step}/{total_steps}] Terminé. Fin du scénario 3. Appuyez sur Entrée pour continuer...")
-
+    try:
+        print(f"[SCÉNARIO 3 - Étape {step}/{total_steps}] Lecture d'un colis inexistant...")
+        client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 3 - Étape {step}/{total_steps}] Terminé. Fin du scénario 3. Appuyez sur Entrée pour continuer...")
+    except(ServerDisconnected):
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
+        return
     client.disconnect()
 
 
@@ -261,13 +272,16 @@ def scenario_4(host=HOST, port=PORT):
 
     total_steps = 1
     step = 1
-
-    print(f"[SCÉNARIO 4 - Étape {step}/{total_steps}] Tentative d'ajout d'un colis sans code ni spacecode...")
-    client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
-    args_incomplete = "-weight 10 -status in_storage"
-    client = safe_send(client, listener, args_incomplete, host, port)
-    input(f"[SCÉNARIO 4 - Étape {step}/{total_steps}] Terminé. Fin du scénario 4. Appuyez sur Entrée pour continuer...")
-
+    try:
+        print(f"[SCÉNARIO 4 - Étape {step}/{total_steps}] Tentative d'ajout d'un colis sans code ni spacecode...")
+        client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
+        args_incomplete = "-weight 10 -status in_storage"
+        client = safe_send(client, listener, args_incomplete, host, port)
+        input(f"[SCÉNARIO 4 - Étape {step}/{total_steps}] Terminé. Fin du scénario 4. Appuyez sur Entrée pour continuer...")
+    except(ServerDisconnected):
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
+        return
     client.disconnect()
 
 def scenario_5(host=HOST, port=PORT):
@@ -283,26 +297,31 @@ def scenario_5(host=HOST, port=PORT):
     step = 1
 
     # --- Étape 1 : ADD ---
-    print(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Ajout du colis sans source ni destination...")
-    client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
-    args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
-               f"-weight 10 -status in_storage -estimated_delivery {date(2025, 12, 15)}"
-    client = safe_send(client, listener, args_add, host, port)
-    input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+    try:
+        print(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Ajout du colis sans source ni destination...")
+        client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
+        args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
+                f"-weight 10 -status in_storage -estimated_delivery {date(2025, 12, 15)}"
+        client = safe_send(client, listener, args_add, host, port)
+        input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 2 : READ ---
-    step += 1
-    print(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Lecture du colis ajouté (pour vérifier quoi le serveur a accepté)...")
-    client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+        # --- Étape 2 : READ ---
+        step += 1
+        print(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Lecture du colis ajouté (pour vérifier quoi le serveur a accepté)...")
+        client = safe_send(client, listener, f"READ {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
 
-    # --- Étape 3 : DELETE ---
-    step += 1
-    print(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Suppression du colis...")
-    client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
-    client = safe_send(client, listener, f"-code {package_code}", host, port)
-    input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Fin du scénario 5. Appuyez sur Entrée pour continuer...")
+        # --- Étape 3 : DELETE ---
+        step += 1
+        print(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Suppression du colis...")
+        client = safe_send(client, listener, f"DELETE {TERMINAL_NAME}", host, port)
+        client = safe_send(client, listener, f"-code {package_code}", host, port)
+        input(f"[SCÉNARIO 5 - Étape {step}/{total_steps}] Terminé. Fin du scénario 5. Appuyez sur Entrée pour continuer...")
+    except(ServerDisconnected):
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
+        return
     client.disconnect()
 
 def scenario_6(host=HOST, port=PORT):
@@ -318,21 +337,24 @@ def scenario_6(host=HOST, port=PORT):
     step = 1
 
     print(f"[SCÉNARIO 6 - Étape {step}/{total_steps}] Envoi d'un colis avec données volumineuses...")
+    try:
+        client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
 
-    client = safe_send(client, listener, f"ADD {TERMINAL_NAME}", host, port)
+        # Création d'une très grande chaîne pour tester le serveur
+        huge_text = "X" * 300  # 300 caractères
 
-    # Création d'une très grande chaîne pour tester le serveur
-    huge_text = "X" * 300  # 300 caractères
+        args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
+                f"-source {huge_text}@email.com -destination {huge_text}@gmail.com " \
+                f"-weight 10 -status in_storage -estimated_delivery {date(2025, 12, 31)} " \
+                f"-notes {huge_text}"
 
-    args_add = f"-code {package_code} -fragile true -refrigerated false -spacecode E403 " \
-               f"-source {huge_text}@email.com -destination {huge_text}@gmail.com " \
-               f"-weight 10 -status in_storage -estimated_delivery {date(2025, 12, 31)} " \
-               f"-notes {huge_text}"
+        client = safe_send(client, listener, args_add, host, port)
 
-    client = safe_send(client, listener, args_add, host, port)
-
-    input(f"[SCÉNARIO 6 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
-
+        input(f"[SCÉNARIO 6 - Étape {step}/{total_steps}] Terminé. Appuyez sur Entrée pour continuer...")
+    except(ServerDisconnected):
+        print(f"[ERROR] Connexion au serveur terminé, retour au menu de départ")
+        client.disconnect
+        return
     client.disconnect()
 
 # ======================
